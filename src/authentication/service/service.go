@@ -3,6 +3,8 @@ package service
 import (
 	"authentication/src/authentication/canonical"
 	"authentication/src/authentication/repository"
+	"crypto/rsa"
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"io/ioutil"
 	"log"
@@ -20,7 +22,13 @@ type service struct {
 var (
 	once = sync.Once{}
 	instance Service
+	rsaPvtKey *rsa.PrivateKey
+	rsaPbcKey *rsa.PublicKey
 )
+
+func init() {
+	initKeys()
+}
 
 func New() Service {
 	once.Do(func() {
@@ -39,10 +47,38 @@ func (r service) Login(login canonical.Login) (*canonical.Jwt, error) {
 		log.Println(err.Error())
 		return  nil, err
 	}
-	return jwtGenerate(user.Id)
+	return jwtEncode(user.Id)
 }
 
-func jwtGenerate(userId string) (*canonical.Jwt, error) {
+func initKeys() error {
+	pemPvt, err := ioutil.ReadFile("/secrets/keys-private.pem")
+	if err != nil {
+		log.Panicf("private key not found. err: %v", err)
+	}
+
+	pemPbc, err := ioutil.ReadFile("/secrets/keys-public.pem")
+	if err != nil {
+		log.Panicf("public key not found, err: %v", err)
+	}
+
+	keyPvt, err := jwt.ParseRSAPrivateKeyFromPEM(pemPvt)
+	if err != nil {
+		log.Panicf("cannot convert pem to private key, err: %v", err)
+	}
+
+	keyPbc, err := jwt.ParseRSAPublicKeyFromPEM(pemPbc)
+	if err != nil {
+		log.Panicf("cannot convert pem to public key, err: %v", err)
+	}
+
+	rsaPvtKey = keyPvt
+	rsaPbcKey = keyPbc
+
+	log.Printf("initialize jwt keys successfully")
+	return nil
+}
+
+func jwtEncode(userId string) (*canonical.Jwt, error) {
 	now := time.Now().UTC()
 	expires := now.Add(time.Hour * 1)
 
@@ -54,18 +90,7 @@ func jwtGenerate(userId string) (*canonical.Jwt, error) {
 		Subject:   userId,
 	}
 
-
-	key, err := ioutil.ReadFile("keys-private.pem")
-	if err != nil {
-		log.Println(err.Error())
-	}
-
-	signKey, err := jwt.ParseRSAPrivateKeyFromPEM(key)
-	if err != nil {
-		log.Println(err.Error())
-	}
-
-	tokenStr, err := token.SignedString(signKey)
+	tokenStr, err := token.SignedString(rsaPvtKey)
 	if err != nil {
 		log.Printf(err.Error())
 		return nil, err
@@ -78,3 +103,14 @@ func jwtGenerate(userId string) (*canonical.Jwt, error) {
 	}, nil
 }
 
+func jwtDecode(hash string) (*jwt.Token, error) {
+	token, err := jwt.Parse(hash, func(token *jwt.Token)(interface{}, error) {
+		_, ok := token.Method.(*jwt.SigningMethodRSA)
+		if !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		return rsaPbcKey, nil
+	})
+
+	return token, err
+}
