@@ -10,12 +10,13 @@ import (
 var testTokenString string
 
 func TestInit(t *testing.T) {
-	err := initKeys()
-	assert.Nil(t, err)
+	initKeys()
+	assert.NotNil(t, rsaPbcKey)
+	assert.NotNil(t, rsaPvtKey)
 }
 
 func TestJwtEncode(t *testing.T) {
-	jwt, err := jwtEncode("123")
+	jwt, err := Encode("123")
 	assert.Nil(t, err)
 	assert.NotEmpty(t, jwt.AccessToken)
 	assert.NotEmpty(t, jwt.ExpiresIn)
@@ -24,7 +25,7 @@ func TestJwtEncode(t *testing.T) {
 }
 
 func TestJwtDecode(t *testing.T) {
-	token, err := jwtDecode(testTokenString)
+	token, err := Decode(testTokenString)
 	claims := token.Claims.(jwt.MapClaims)
 	iat := int64(claims["iat"].(float64))
 	exp := int64(claims["exp"].(float64))
@@ -35,7 +36,3 @@ func TestJwtDecode(t *testing.T) {
 	assert.Equal(t, true, now >= iat)
 	assert.Equal(t, true, now < exp)
 }
-
-
-
-

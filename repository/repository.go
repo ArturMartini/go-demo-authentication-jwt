@@ -1,12 +1,12 @@
 package repository
 
-import "authentication/src/authentication/canonical"
+import "github.com/ArturMartini/go-demo-login-jwt/canonical"
 
 type Repository interface {
 	GetUser(login canonical.Login) (canonical.User, error)
 }
 
-type repo struct {}
+type repo struct{}
 
 func (repo) GetUser(login canonical.Login) (canonical.User, error) {
 	return canonical.User{

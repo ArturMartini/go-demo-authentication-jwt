@@ -1,4 +1,4 @@
-module authentication
+module github.com/ArturMartini/go-demo-login-jwt
 
 go 1.12
 

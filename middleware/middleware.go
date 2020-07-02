@@ -1,23 +1,48 @@
 package middleware
 
 import (
-	"authentication/src/authentication/canonical"
-	"authentication/src/authentication/service"
 	"encoding/json"
+	"github.com/ArturMartini/go-demo-login-jwt/canonical"
+	"github.com/ArturMartini/go-demo-login-jwt/jwt"
+	"github.com/ArturMartini/go-demo-login-jwt/service"
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 var (
 	svc service.Service
 )
 
-func Start() {
+func Start() error {
 	svc = service.New()
 	router := mux.NewRouter()
 	router.HandleFunc("/login", login).Methods(http.MethodPost)
-	http.ListenAndServe(":8080", router)
+	router.HandleFunc("/client", demo).Methods(http.MethodPost)
+	return http.ListenAndServe(":8080", router)
+}
+
+func demo(w http.ResponseWriter, r *http.Request) {
+	if checkAccess(r) {
+		err := svc.Demo()
+		if err != nil {
+			checkError(err)
+		}
+		w.WriteHeader(http.StatusOK)
+	}
+
+	w.WriteHeader(http.StatusForbidden)
+}
+
+func checkAccess(r *http.Request) bool {
+	authorization := r.Header.Get("Authorization")
+	jwtStr := strings.TrimSpace(strings.ReplaceAll(authorization, "Bearer", ""))
+	token, err := jwt.Decode(jwtStr)
+	if err != nil || !token.Valid {
+		return false
+	}
+	return true
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +78,3 @@ func login(w http.ResponseWriter, r *http.Request) {
 func checkError(err error) {
 }
 
-func logout(w http.ResponseWriter, r *http.Request) {
-
-}
