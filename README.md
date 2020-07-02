@@ -99,8 +99,10 @@ func Decode(hash string) (*jwt.Token, error) {
 ```
 
 ## For run 
+*   Generate RSA key in https://mkjwk.org/
+*   Convert RSA key to pem in https://8gwifi.org/jwkconvertfunctions.jsp
 *   Goto root project
-*   go run main.go
+*   go run main.go -RSA_KEY_PVT=/yourpath/your-private.pem -RSA_KEY_PBC=/yourpath/your-public.pem
 *   curl -XPOST -d '{"username":"any", "password":"any"}' http://localhost:8080/login
 *   curl -XPOST -H "Authorization: Bearer $access_token" http://localhost:8080/client
 
