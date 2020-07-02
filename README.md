@@ -34,12 +34,17 @@ func init() {
 }
 
 func initKeys() {
-	pemPvt, err := ioutil.ReadFile("/secrets/keys-private.pem")
+	var pvtAddr, pbcAddr string
+	flag.StringVar(&pvtAddr, "RSA_KEY_PVT", "/secrets/key-private.pem", "RSA private key")
+	flag.StringVar(&pbcAddr, "RSA_KEY_PBC", "/secrets/key-public.pem", "RSA public key")
+	flag.Parse()
+
+	pemPvt, err := ioutil.ReadFile(pvtAddr)
 	if err != nil {
 		log.Panicf("private key not found. err: %v", err)
 	}
 
-	pemPbc, err := ioutil.ReadFile("/secrets/keys-public.pem")
+	pemPbc, err := ioutil.ReadFile(pbcAddr)
 	if err != nil {
 		log.Panicf("public key not found, err: %v", err)
 	}
